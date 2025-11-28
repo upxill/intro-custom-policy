@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns:sockets="http://www.mulesoft.org/schema/mule/sockets"
+	xmlns:tls="http://www.mulesoft.org/schema/mule/tls"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:http-policy="http://www.mulesoft.org/schema/mule/http-policy"
+	xmlns:http-transform="http://www.mulesoft.org/schema/mule/http-policy-transform"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/sockets http://www.mulesoft.org/schema/mule/sockets/current/mule-sockets.xsd http://www.mulesoft.org/schema/mule/tls http://www.mulesoft.org/schema/mule/tls/current/mule-tls.xsd http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+               http://www.mulesoft.org/schema/mule/http-policy http://www.mulesoft.org/schema/mule/http-policy/current/mule-http-policy.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd http://www.mulesoft.org/schema/mule/http-policy-transform http://www.mulesoft.org/schema/mule/http-policy-transform/current/mule-http-policy-transform.xsd http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+      http://www.mulesoft.org/schema/mule/mule-apikit http://www.mulesoft.org/schema/mule/mule-apikit/current/mule-apikit.xsd
+      http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+      http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	
+	<http:request-config name="SF_HTTPS_Request_configuration" doc:name="HTTP Request configuration" doc:id="55f8a4a3-a22a-4b63-a7bb-02083acc0073">
+		<http:request-connection protocol="HTTPS"
+			host="{{{salesforceHost}}}">
+			<tls:context>
+				<tls:trust-store insecure="true" />
+			</tls:context>
+			<http:client-socket-properties>
+				<sockets:tcp-client-socket-properties />
+			</http:client-socket-properties>
+		</http:request-connection>
+	</http:request-config>
+
+
+	<http-policy:proxy name="{{{policyId}}}-custom-policy"> 
+		<http-policy:source>
+			 <http:request method="POST" doc:name="Request" doc:id="39903a98-576c-4805-b438-f0420ac24faf" config-ref="SF_HTTPS_Request_configuration" path="/services/oauth2/introspect">
+						<http:query-params><![CDATA[#[output application/java
+							---
+							{
+								"token" : attributes.headers.authorization,
+								"token_type_hint" : "{{{tokenHint}}}",
+								"client_id" : "{{{clientId}}}",
+								"client_secret" : "{{{clientSecret}}}" 
+							}]]]></http:query-params>
+			</http:request>
+			<logger message="Salesforce Response #[payload]" />
+		
+			<choice doc:name="Choice" doc:id="c5305f07-5b4d-47d1-9b51-0d35f89eb70a"> 
+				<when expression="#[payload.active]"> 
+ 			
+					<set-variable value="#[payload.username]" doc:name="Set Variable" doc:id="156b1af8-ed13-4b71-b576-9abc82c6100d" variableName="username" />
+				</when>
+				<otherwise>
+ 			
+					<set-payload value="#[payload]" doc:name="Set Payload" doc:id="2fa9d265-43c9-471d-af9d-5ff43adcb963" />
+				</otherwise>
+			</choice>
+			<http-policy:execute-next />
+		 </http-policy:source>
+
+		<http-policy:operation>
+			<choice doc:name="Choice" doc:id="715abb71-5248-4030-a242-9a1612526c7e">
+				<when expression="#[!isEmpty(vars.username)]">
+ 
+					<http-transform:add-request-headers>
+						<http-transform:headers>#[{'username': vars.username}]</http-transform:headers>
+					</http-transform:add-request-headers>
+
+					<logger level="INFO" doc:name="Response Header" doc:id="5b3a25bd-beee-44f3-a783-4eaf4f6de553" message='#[output application/dw --- attributes.headers]' />
+					<http-policy:execute-next />
+				</when>
+				<otherwise>
+ 					<set-payload value="#[payload]" doc:name="Set Payload" doc:id="0b5add11-ddeb-497f-a821-9a9680273f06" />
+					<http-transform:set-response statusCode="#[401]">
+						<http-transform:body> #[output application/json --- payload]
+						</http-transform:body>
+					</http-transform:set-response>
+				</otherwise>
+			</choice>
+		</http-policy:operation>
+	</http-policy:proxy>
+</mule>

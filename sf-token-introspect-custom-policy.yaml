@@ -1,0 +1,42 @@
+id: sf-token-introspect-custom-policy
+name: Salesforce Access Token Introspection
+description: test
+category: Custom
+type: custom
+resourceLevelSupported: true
+encryptionSupported: false
+standalone: true
+requiredCharacteristics: []
+providedCharacteristics: []
+configuration: 
+ - propertyName: tokenHint
+   name: Access Token Hint
+   type: String
+   description: Expression that sets the type of the submitted token.
+   optional: false
+   sensitive: false
+   allowMultiple: false
+ - propertyName: clientId
+   name: Client Id
+   type: String
+   description: Expression that sets the Client Id.
+   optional: false
+   sensitive: false
+   allowMultiple: false
+ - propertyName: clientSecret
+   name: Client Secret
+   type: String
+   description: Expression that sets the Client Secret.
+   optional: false
+   sensitive: false
+   allowMultiple: false   
+ - propertyName: salesforceHost
+   name: Salesforce Host Name e.g.login.salesforce.com
+   type: String
+   description: Expression that sets the Salesforce Host Namet.
+   optional: false
+   sensitive: false
+   allowMultiple: false     
+   
+   
+ 
